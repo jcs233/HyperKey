@@ -8,7 +8,11 @@ HyperKey is an LSPosed module for physical keyboards on Xiaomi HyperOS tablets. 
 
 ## Build and install
 
-This repository contains the source for **0.2.0**. There is currently no published APK. You need JDK 17, Android SDK Platform 36, Android Platform-Tools, and a working LSPosed installation with API 102 support.
+**[Download the signed HyperKey 0.2.0 APK](https://github.com/jcs233/HyperKey/releases/download/v0.2.0/HyperKey-0.2.0.apk)** · [Release notes and SHA-256 checksum](https://github.com/jcs233/HyperKey/releases/tag/v0.2.0)
+
+Install the APK on the tablet, or run `adb install -r HyperKey-0.2.0.apk` from the download directory. The release uses a different signing key from development builds. If a debug build is already installed, record your settings, uninstall it, install the release and recheck the LSPosed scopes and permission.
+
+To build a debug APK yourself instead, use JDK 17, Android SDK Platform 36 and Android Platform-Tools:
 
 ```sh
 git clone https://github.com/jcs233/HyperKey.git
@@ -17,7 +21,9 @@ cd HyperKey
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-In Windows PowerShell, use `.\gradlew.bat :app:assembleDebug`. Enable HyperKey in LSPosed and select all three scopes: **System Framework** (`system`), **Settings** (`com.android.settings`), and **System Security Components** (`com.miui.securitycore`). Reboot the tablet. Reboot again after an update that changes system hooks.
+In Windows PowerShell, use `.\gradlew.bat :app:assembleDebug`.
+
+**Enable the module:** Use a working LSPosed installation with API 102 support. Enable HyperKey in LSPosed and select all three scopes: **System Framework** (`system`), **Settings** (`com.android.settings`), and **System Security Components** (`com.miui.securitycore`). Reboot the tablet. Reboot again after an update that changes system hooks.
 
 The native settings pages can write global switches with their host permissions. To edit configuration in the standalone app, including app profiles or key mappings opened from Settings, grant:
 

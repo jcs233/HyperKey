@@ -16,9 +16,11 @@ HyperKey 让你决定小米平板的实体键盘快捷键在哪里生效。例�
 
 **已验证：** Xiaomi Pad 8 Pro（`piano`），HyperOS `OS4.0.5.0.XPYCNXM`，Android 17 / API 37，LSPosed 2.2.1 (7944)，系统安全组件 `4.4.4.3-4-260914.pad`。模块使用 libxposed API **102.0.0**。小米在不同固件上可能调整键盘实现，其他设备或版本的适配情况请以[验证记录](docs/VALIDATION.md)为准。
 
-仓库提供 **0.2.0 源码**，目前没有发布可直接下载的 APK。以下步骤会在自己的电脑上生成调试签名的安装包。
+**[下载 HyperKey 0.2.0 正式 APK](https://github.com/jcs233/HyperKey/releases/download/v0.2.0/HyperKey-0.2.0.apk)** · [发布说明与 SHA-256 校验文件](https://github.com/jcs233/HyperKey/releases/tag/v0.2.0)
 
-## 从源码安装
+在平板上打开 APK 安装，或在下载目录执行 `adb install -r HyperKey-0.2.0.apk`，然后按下方「启用模块」配置 LSPosed。已装开发调试版的用户不能直接覆盖安装：请先记下应用配置，卸载调试版后再安装正式版，重新检查作用域和授权。
+
+## 从源码安装（可选）
 
 1. 准备 JDK 17、Android SDK Platform 36、Android SDK Platform-Tools（含 `adb`），以及已安装、可用且支持 API 102 的 LSPosed 环境。将 Android SDK 路径配置在 `ANDROID_HOME` 或本机的 `local.properties` 中。
 2. 克隆仓库，在项目根目录构建。首次构建需要联网下载依赖。
@@ -36,7 +38,9 @@ HyperKey 让你决定小米平板的实体键盘快捷键在哪里生效。例�
    adb install -r app/build/outputs/apk/debug/app-debug.apk
    ```
 
-4. 在 LSPosed 中启用 HyperKey，勾选以下三个作用域，然后**重启平板**。更新含系统 Hook 的版本后也要重启。
+## 启用模块
+
+1. 在 LSPosed 中启用 HyperKey，勾选以下三个作用域，然后**重启平板**。更新含系统 Hook 的版本后也要重启。
 
    | 作用域 | 标识 | 用途 |
    | --- | --- | --- |
@@ -44,7 +48,7 @@ HyperKey 让你决定小米平板的实体键盘快捷键在哪里生效。例�
    | 设置 | `com.android.settings` | 通用键盘和专属键盘设置入口 |
    | 系统安全组件 | `com.miui.securitycore` | 专属键盘的原生「键盘快捷键」编辑页 |
 
-5. **只在系统设置调全局开关的用户，到这里就可以使用。** 若要从 HyperKey 独立界面写入全局配置、应用名单或映射，再授权一次。即使从系统设置进入，名单和映射编辑器也属于 HyperKey。
+2. **只在系统设置调全局开关的用户，到这里就可以使用。** 若要从 HyperKey 独立界面写入全局配置、应用名单或映射，再授权一次。即使从系统设置进入，名单和映射编辑器也属于 HyperKey。
 
    ```sh
    adb shell pm grant io.github.hyperkey android.permission.WRITE_SECURE_SETTINGS
