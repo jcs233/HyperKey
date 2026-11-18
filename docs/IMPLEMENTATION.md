@@ -30,7 +30,7 @@ InputManagerService 最早 queueing 入口拦截映射来源并异步注入成�
 
 - 设备：Xiaomi Pad 8 Pro / piano / 25091RP04C。
 - 系统：OS4.0.5.0.XPYCNXM，Android 17，API 37。
-- 官方 libxposed 最新稳定发布：102.0.0（2026-06-14）。使用无参数 XposedModule、onSystemServerStarting、onPackageReady 和 HookBuilder/Chain，禁止混用旧版 XposedBridge。
+- 项目固定使用 libxposed API 102.0.0。使用无参数 XposedModule、onSystemServerStarting、onPackageReady 和 HookBuilder/Chain，禁止混用旧版 XposedBridge。
 
 ## 分阶段实施
 
@@ -68,7 +68,7 @@ API 102 的 system_server 作用域为 `system`，不是 Android System APK 的 
 
 ## 构建验证
 
-2026-11-18：assembleDebug、7 项纯逻辑单元测试、lintDebug 通过。设备验证记录单独保留；编译通过不代表所有实体键盘行为已验证。
+0.2.0：assembleDebug 成功，17 项单元测试通过；lintDebug 为 0 错误、18 警告、2 提示。最初版本的 7 项测试及后续实体键盘、页面同步与 Win 透传的验证结果见[实机验证记录](VALIDATION.md)。
 
 ## 参考
 
