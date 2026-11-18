@@ -1,0 +1,45 @@
+# Android / Gradle output and local IDE settings
+.gradle/
+.gradle-user/
+.kotlin/
+**/build/
+.idea/
+.vscode/
+*.iml
+local.properties
+.externalNativeBuild/
+.cxx/
+
+# Local tablet captures, firmware, one-off diagnostics and distribution output
+/device/
+/tools/
+/dist/
+*.apk
+*.aab
+*.apks
+*.aar
+*.dex
+*.jar
+!/gradle/wrapper/gradle-wrapper.jar
+*.log
+*.hprof
+*.db
+*.db-shm
+*.db-wal
+
+# Signing and machine credentials
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+key.properties
+keystore.properties
+signing.properties
+.env
+.env.*
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
