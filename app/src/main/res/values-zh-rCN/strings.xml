@@ -24,7 +24,7 @@
   <string name="permission_needed">需要配置写入权限，请返回首页授权。</string>
   <string name="mapping_invalid">映射无效：请检查来源和目标，禁止电源及系统导航键，来源与目标不能相同。</string>
   <string name="appearance">语言与外观</string>
-  <string name="appearance_summary">语言、主题模式与自定义配色</string>
+  <string name="appearance_summary">语言、桌面图标、主题与配色</string>
   <string name="language">语言</string>
   <string name="follow_system">跟随系统</string>
   <string name="theme_mode">主题模式</string>
@@ -154,4 +154,8 @@
   <string name="map_target_step">2 · 目标</string>
   <string name="map_record_target">录入目标键或组合键</string>
   <string name="map_preview">映射预览</string>
+  <string name="hide_launcher_icon">隐藏桌面图标</string>
+  <string name="hide_launcher_icon_help">隐藏后，可从 LSPosed 的模块设置或系统键盘设置的「模块管理」打开 HyperKey。关闭此开关即可恢复图标。</string>
+  <string name="launcher_icon_error">未能更改桌面图标设置</string>
+  <string name="open_hyperkey">打开 HyperKey</string>
 </resources>

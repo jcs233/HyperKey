@@ -1,5 +1,8 @@
 package io.github.hyperkey.ui
 
+import android.content.ComponentName
+import android.content.pm.PackageManager
+import android.widget.Toast
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -22,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import io.github.hyperkey.R
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.extra.SuperSwitch
 
 private val tonalRows = listOf(
     listOf("EF9A9A","F48FB1","CE93D8","B39DDB","9FA8DA","90CAF9","80CBC4","A5D6A7","FFCC80"),
@@ -29,6 +33,28 @@ private val tonalRows = listOf(
     listOf("D32F2F","C2185B","7B1FA2","512DA8","303F9F","1976D2","00796B","388E3C","F57C00"))
 private fun hex(input: String): String? = input.trim().removePrefix("#").takeIf { it.matches(Regex("[a-fA-F0-9]{6}")) }?.let { "#" + it.uppercase(java.util.Locale.ROOT) }
 class AppearanceActivity : ThemedActivity() {
+    private val launcherAlias by lazy { ComponentName(this, "$packageName.ui.LauncherIcon") }
+    private var iconHidden by mutableStateOf(false)
+
+    private fun readIconHidden() = packageManager.getComponentEnabledSetting(launcherAlias) ==
+        PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+
+    override fun onResume() {
+        super.onResume()
+        iconHidden = readIconHidden()
+    }
+
+    private fun updateLauncherIcon(hide: Boolean) {
+        try {
+            packageManager.setComponentEnabledSetting(launcherAlias,
+                if (hide) PackageManager.COMPONENT_ENABLED_STATE_DISABLED else PackageManager.COMPONENT_ENABLED_STATE_DEFAULT,
+                PackageManager.DONT_KILL_APP)
+        } catch (error: RuntimeException) {
+            Toast.makeText(this, R.string.launcher_icon_error, Toast.LENGTH_LONG).show()
+        }
+        iconHidden = readIconHidden()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); setContent { HyperTheme { Screen() } }
     }
@@ -46,6 +72,11 @@ class AppearanceActivity : ThemedActivity() {
         EditorPage(tr("appearance"), ::finish) {
             EditorGroup(tr("language")) {
                 Options("language", listOf("system" to tr("follow_system"), "zh-CN" to "简体中文", "en" to "English"))
+            }
+            Card(Modifier.fillMaxWidth()) {
+                SuperSwitch(title = stringResource(R.string.hide_launcher_icon),
+                    summary = stringResource(R.string.hide_launcher_icon_help), checked = iconHidden,
+                    onCheckedChange = ::updateLauncherIcon)
             }
             EditorGroup(tr("theme_mode")) {
                 Options("theme", listOf("system" to tr("follow_system"), "light" to tr("light"), "dark" to tr("dark")))

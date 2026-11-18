@@ -150,6 +150,11 @@ final class SettingsHooks {
             });
         }
         Object actions = category(screen, context, "hyperkey_actions", UiText.text(context, "module_management"), 1000);
+        Object openModule = preference(actions, context, "hyperkey_open_module", UiText.text(context, "open_hyperkey"), "", false);
+        onClick(openModule, () -> context.startActivity(new android.content.Intent(android.content.Intent.ACTION_MAIN)
+                .addCategory("io.github.libxposed.category.MODULE_SETTINGS")
+                .setClassName("io.github.hyperkey", "io.github.hyperkey.ui.MainActivity")
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)));
         Object profiles = preference(actions, context, "hyperkey_profiles", UiText.text(context, "profiles"),
                 UiText.text(context, "host_profile_help"), false);
         onClick(profiles, () -> context.startActivity(new android.content.Intent()

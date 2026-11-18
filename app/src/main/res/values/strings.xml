@@ -24,7 +24,7 @@
   <string name="permission_needed">Configuration permission required. See the home screen.</string>
   <string name="mapping_invalid">Invalid mapping. Check both keys. Power and system navigation keys are excluded; source and target must differ.</string>
   <string name="appearance">Language &amp; appearance</string>
-  <string name="appearance_summary">Language, theme mode and custom colors</string>
+  <string name="appearance_summary">Language, launcher icon, theme and colors</string>
   <string name="language">Language</string>
   <string name="follow_system">Follow system</string>
   <string name="theme_mode">Theme mode</string>
@@ -154,4 +154,8 @@
   <string name="map_target_step">2 · Target</string>
   <string name="map_record_target">Record target key or chord</string>
   <string name="map_preview">Mapping preview</string>
+  <string name="hide_launcher_icon">Hide launcher icon</string>
+  <string name="hide_launcher_icon_help">Reopen HyperKey from LSPosed module settings or from Module management in keyboard settings. Turn this off to restore the icon.</string>
+  <string name="launcher_icon_error">Could not change the launcher icon setting.</string>
+  <string name="open_hyperkey">Open HyperKey</string>
 </resources>

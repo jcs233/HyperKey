@@ -101,6 +101,7 @@ public final class ResourceIds {
  case "host_master_help" -> R.string.host_master_help;
  case "host_category" -> R.string.host_category;
  case "module_management" -> R.string.module_management;
+ case "open_hyperkey" -> R.string.open_hyperkey;
  case "host_profile_help" -> R.string.host_profile_help;
  case "host_restore" -> R.string.host_restore;
  case "host_restore_help" -> R.string.host_restore_help;
