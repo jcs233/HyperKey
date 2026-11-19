@@ -11,7 +11,9 @@ public final class KeyMappings {
     public final List<Rule> rules;
     public KeyMappings(List<Rule> rules) { this.rules = Collections.unmodifiableList(new ArrayList<>(rules)); }
     public record Rule(String owner, int sourceKey, int sourceModifiers, int targetKey, int targetModifiers, String action) {
-        public boolean systemAction() { return !action.isEmpty(); }
+        public boolean localAction() { return action.startsWith("local_"); }
+        public boolean keyTarget() { return action.isEmpty(); }
+        public boolean systemAction() { return !keyTarget() && !localAction(); }
         public String id() { return owner + ":" + sourceKey + ":" + sourceModifiers; }
     }
     public Rule find(String owner, int key, int modifiers) {
@@ -22,6 +24,11 @@ public final class KeyMappings {
         }
         return global;
     }
+    public Rule forProfile(String pkg, AppProfiles profiles, int key, int modifiers) {
+        AppProfiles.Profile p = profiles.entries.get(pkg);
+        return find(p != null && p.enabled ? pkg : GLOBAL, key, modifiers);
+    }
+    public static boolean localId(String id) { return id != null && id.matches("local_[0-9a-f]{32}"); }
     public KeyMappings put(Rule rule) {
         validate(rule);
         List<Rule> result = new ArrayList<>(rules);
@@ -44,9 +51,9 @@ public final class KeyMappings {
     private static void validate(Rule r) {
         if ((!r.owner.equals(GLOBAL) && !AppProfiles.validPackage(r.owner)) || !keyAllowed(r.sourceKey) ||
                 (r.sourceModifiers & ~MODIFIERS) != 0 || (r.targetModifiers & ~MODIFIERS) != 0 ||
-                (r.systemAction() ? !actionAllowed(r.action) || r.targetKey != 0 || r.targetModifiers != 0 : !keyAllowed(r.targetKey)))
+                (!r.keyTarget() ? !(actionAllowed(r.action) || localId(r.action)) || r.targetKey != 0 || r.targetModifiers != 0 : !keyAllowed(r.targetKey)))
             throw new IllegalArgumentException("映射参数无效");
-        if (!r.systemAction() && r.sourceKey == r.targetKey && r.sourceModifiers == r.targetModifiers)
+        if (r.keyTarget() && r.sourceKey == r.targetKey && r.sourceModifiers == r.targetModifiers)
             throw new IllegalArgumentException("来源与目标相同");
     }
     public String encode() {

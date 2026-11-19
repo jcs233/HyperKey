@@ -1,6 +1,10 @@
 package io.github.hyperkey.hook;
 
 import android.os.Binder;
+import android.app.KeyguardManager;
+import android.content.Context;
+import android.content.Intent;
+import io.github.hyperkey.core.KeyMeta;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
@@ -35,41 +39,46 @@ final class MappingEngine {
         Press press = pressed.get(key);
         if (press != null && press.downTime != event.getDownTime()) { pressed.remove(key); press = null; }
         int normalized = KeyEvent.normalizeMetaState(event.getMetaState()) & KeyMappings.MODIFIERS;
-        int sourceModifiers = normalized & ~modifier(event.getKeyCode());
-        if (press == null && event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+        int sourceModifiers = normalized & ~KeyMeta.group(event.getKeyCode());
+        if (press == null && !config.actionScreen() && event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
             KeyMappings.Rule rule = config.mapping(event.getKeyCode(), sourceModifiers);
-            if (rule != null && (!rule.systemAction() || !config.get().blockAll)) {
+            if (rule != null && (rule.keyTarget() || !config.get().blockAll)) {
                 press = new Press(event.getDownTime(), rule);
                 if (pressed.size() > 128) return false;
                 pressed.put(key, press);
             }
         }
-        int transformedMeta = normalized;
+        int transformedMeta = event.getMetaState();
         boolean modifierChanged = false;
         for (Map.Entry<Long, Press> item : pressed.entrySet()) {
             if ((int)(item.getKey() >> 32) != event.getDeviceId()) continue;
             KeyMappings.Rule r = item.getValue().rule;
-            if (!r.systemAction() && r.sourceModifiers() == 0 && (modifier(r.sourceKey()) != 0 || modifier(r.targetKey()) != 0)) {
-                transformedMeta &= ~modifier(r.sourceKey());
+            if (r.keyTarget() && r.sourceModifiers() == 0 && (KeyMeta.group(r.sourceKey()) != 0 || KeyMeta.group(r.targetKey()) != 0)) {
+                transformedMeta = KeyMeta.remove(transformedMeta, KeyMeta.group(r.sourceKey()));
                 if (!(event.getAction() == KeyEvent.ACTION_UP && r.sourceKey() == event.getKeyCode()))
-                    transformedMeta |= modifier(r.targetKey()) | r.targetModifiers();
+                    transformedMeta |= KeyMeta.withSide(r.targetKey()) | r.targetModifiers();
                 modifierChanged = true;
             }
         }
         if (event.getAction() == KeyEvent.ACTION_UP) pressed.remove(key);
         if (press == null && !modifierChanged) return false;
-        if (press != null && press.rule.systemAction()) {
+        if (press != null && !press.rule.keyTarget()) {
             if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
-                Shortcut action = Shortcut.valueOf(press.rule.action());
-                handler().post(() -> action(action));
+                Context owner = config.context();
+                KeyMappings.Rule rule = press.rule;
+                handler().post(() -> {
+                    if (owner == null || owner != config.context()) return;
+                    if (rule.localAction()) localAction(owner, rule);
+                    else action(Shortcut.valueOf(rule.action()));
+                });
             }
             return true;
         }
         int target = press == null ? event.getKeyCode() : press.rule.targetKey();
-        if (press != null && modifier(target) == 0)
-            transformedMeta = (transformedMeta & ~press.rule.sourceModifiers()) | press.rule.targetModifiers();
+        if (press != null && KeyMeta.group(target) == 0)
+            transformedMeta = KeyMeta.remove(transformedMeta, press.rule.sourceModifiers() & ~press.rule.targetModifiers()) | press.rule.targetModifiers();
         KeyEvent mapped = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), target,
-                event.getRepeatCount(), transformedMeta, event.getDeviceId(), 0,
+                event.getRepeatCount(), transformedMeta, event.getDeviceId(), target == event.getKeyCode() ? event.getScanCode() : 0,
                 event.getFlags() | KeyEvent.FLAG_FALLBACK, event.getSource());
         try { Reflect.call(mapped, "setDisplayId", Reflect.call(event, "getDisplayId")); }
         catch (ReflectiveOperationException ignored) { }
@@ -103,7 +112,15 @@ final class MappingEngine {
             Reflect.call(utility, "triggerFunction", function, "hyperkey_mapping", null, false);
         } catch (ReflectiveOperationException | RuntimeException e) { Log.w("HyperKey", "Mapped system action failed", e); }
     }
-    private static int modifier(int key) {
-        return switch (key) { case 57, 58 -> 2; case 59, 60 -> 1; case 113, 114 -> 0x1000; case 117, 118 -> 0x10000; default -> 0; };
+    // Only an opaque reference crosses processes. The private Activity resolves it as the user who pressed the key.
+    private void localAction(Context owner, KeyMappings.Rule rule) {
+        try {
+            KeyguardManager guard = owner.getSystemService(KeyguardManager.class);
+            if (guard == null || guard.isKeyguardLocked() || guard.isDeviceLocked()) return;
+            Intent intent = new Intent().setClassName("io.github.hyperkey", "io.github.hyperkey.ui.ShortcutActionActivity")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+                    .putExtra("ref", rule.action()).putExtra("binding", rule.id());
+            Reflect.call(owner, "startActivityAsUser", intent, Reflect.call(owner, "getUser"));
+        } catch (ReflectiveOperationException | RuntimeException e) { Log.w("HyperKey", "Cannot open shortcut action", e); }
     }
 }

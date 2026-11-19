@@ -22,7 +22,11 @@ public final class HookStatus {
             int boot = Settings.Global.getInt(context.getContentResolver(), "boot_count", -1);
             if (boot < 0 || Integer.parseInt(fields[0]) != boot) return UiText.text(context, "status_wait");
             boolean chinese = context.getResources().getConfiguration().getLocales().get(0).getLanguage().equals("zh");
-            return chinese ? fields[3] + "（" + fields[2] + " 个 Hook）" : UiText.text(context, "status_loaded", fields[2]);
+            boolean pending = fields[3].endsWith(";native_wait");
+            String detail = pending ? fields[3].substring(0, fields[3].length() - ";native_wait".length()) : fields[3];
+            String summary = detail.startsWith("partial:") ? UiText.text(context, "hook_partial", fields[2], detail.substring(8)) :
+                    chinese ? detail + "（" + fields[2] + " 个 Hook）" : UiText.text(context, "status_loaded", fields[2]);
+            return pending ? summary + " · " + UiText.text(context, "native_wait") : summary;
         } catch (RuntimeException ignored) { return UiText.text(context, "status_unreadable"); }
     }
 }

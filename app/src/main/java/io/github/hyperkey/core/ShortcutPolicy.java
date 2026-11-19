@@ -5,7 +5,6 @@ public final class ShortcutPolicy {
     private ShortcutPolicy() {}
 
     public static boolean bypass(Config config, int keyCode, int modifiers) {
-        if (config.blockAll) return true;
         int meaningfulModifiers = modifiers & 0x11003;
         for (Shortcut shortcut : Shortcut.values()) {
             if (shortcut.keyCode < 0 || !config.isBlocked(shortcut)) continue;

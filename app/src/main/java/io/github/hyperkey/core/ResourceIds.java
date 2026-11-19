@@ -3,6 +3,8 @@ import io.github.hyperkey.R;
 public final class ResourceIds {
  private ResourceIds() {}
  public static int stringId(String name) { return switch(name) {
+ case "native_wait" -> R.string.native_wait;
+ case "hook_partial" -> R.string.hook_partial;
  case "not_set" -> R.string.not_set;
  case "mappings" -> R.string.mappings;
  case "back" -> R.string.back;

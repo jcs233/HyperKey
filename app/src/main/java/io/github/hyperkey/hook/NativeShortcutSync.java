@@ -20,10 +20,16 @@ final class NativeShortcutSync {
     private boolean applying;
     private long revision;
     private String fingerprint;
+    // OEM shortcutKeyCode packs Android's logical modifiers above the 32-bit keycode.
+    private volatile java.util.Map<Long, Shortcut> chords = java.util.Collections.emptyMap();
+    Shortcut lookup(int key, int mods) { return chords.get(((long)(mods & 0x11003) << 32) | (key & 0xffffffffL)); }
 
     NativeShortcutSync(ClassLoader loader) { this.loader = loader; }
 
+    synchronized void reset() { context = null; utility = null; published = null; fingerprint = null; chords = java.util.Collections.emptyMap(); }
+
     synchronized void start(Context value) throws ReflectiveOperationException {
+        reset();
         context = value;
         Class<?> type = Class.forName("com.miui.server.input.util.MiuiCustomizeShortCutUtils", false, loader);
         utility = type.getMethod("getInstance", Context.class).invoke(null, value);
@@ -68,6 +74,7 @@ final class NativeShortcutSync {
     }
 
     private void publish(Config base) throws ReflectiveOperationException {
+        java.util.Map<Long, Shortcut> next = new java.util.HashMap<>();
         long seen = 0, enabled = 0;
         java.util.List<String> entries = new ArrayList<>();
         for (Object info : infos()) {
@@ -76,11 +83,14 @@ final class NativeShortcutSync {
             seen |= shortcut.bit();
             boolean active = Boolean.TRUE.equals(Reflect.call(info, "isActive"));
             if (active) enabled |= shortcut.bit();
-            entries.add(shortcut.nativeType + ":" + Reflect.call(info, "getShortcutKeyCode") + ":" + active
+            long chord = (long) Reflect.call(info, "getShortcutKeyCode");
+            next.put(chord, shortcut);
+            entries.add(shortcut.nativeType + ":" + chord + ":" + active
                     + ":" + Reflect.call(info, "isCustomized") + ":" + Reflect.call(info, "getPackageName")
                     + ":" + Reflect.call(info, "getClassName"));
         }
         if (seen == 0) throw new IllegalStateException("Native shortcut list is not ready");
+        chords = next;
         // App shortcuts are an aggregate: enabled if any app shortcut is active.
         published = base.withNativeStates(seen, enabled);
         if (!published.encode().equals(ConfigStore.read(context).encode())) ConfigStore.write(context, published);

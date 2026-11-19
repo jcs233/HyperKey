@@ -16,9 +16,19 @@ HyperKey 让你决定小米平板的实体键盘快捷键在哪里生效。例�
 
 **已验证：** Xiaomi Pad 8 Pro（`piano`），HyperOS `OS4.0.5.0.XPYCNXM`，Android 17 / API 37，LSPosed 2.2.1 (7944)，系统安全组件 `4.4.4.3-4-260914.pad`。模块使用 libxposed API **102.0.0**。小米在不同固件上可能调整键盘实现，其他设备或版本的适配情况请以[验证记录](docs/VALIDATION.md)为准。
 
-**[下载 HyperKey 0.2.0 正式 APK](https://github.com/jcs233/HyperKey/releases/download/v0.2.0/HyperKey-0.2.0.apk)** · [发布说明与 SHA-256 校验文件](https://github.com/jcs233/HyperKey/releases/tag/v0.2.0)
+**[下载 HyperKey 0.3.0 正式 APK（2.33 MiB）](https://github.com/jcs233/HyperKey/releases/download/v0.3.0/HyperKey-0.3.0.apk)** · [发布说明与 SHA-256 校验文件](https://github.com/jcs233/HyperKey/releases/tag/v0.3.0)
 
-在平板上打开 APK 安装，或在下载目录执行 `adb install -r HyperKey-0.2.0.apk`，然后按下方「启用模块」配置 LSPosed。已装开发调试版的用户不能直接覆盖安装：请先记下应用配置，卸载调试版后再安装正式版，重新检查作用域和授权。
+0.3.0 新增 [108 键图形选键器](docs/USAGE.md#按键映射)。快捷键可以打开应用、公开的应用页面或系统设置，也可以执行普通命令或经确认的 Root 命令。新版已通过 30 项单元测试；上面的平板实测记录来自较早版本，详见[验证记录](docs/VALIDATION.md)。
+
+**安装或升级：** 0.3.0 是经过裁剪的 Release 构建，使用与项目测试版相同的签名证书。按你已安装的版本选择：
+
+| 已安装的版本 | 怎么做 |
+| --- | --- |
+| 尚未安装 | 下载并打开 APK，然后按下方「启用模块」配置。 |
+| 项目分发的同签名测试版 | 可直接覆盖安装，或运行 `adb install -r HyperKey-0.3.0.apk`。如果已装 `0.3.0-compact-test`，它与正式附件内容相同，无需重装。 |
+| GitHub 0.2.0 正式版，或使用旧正式证书的 0.2.1 | 签名不同，不能直接覆盖。先记下需要保留的配置，再卸载旧版、安装新版。卸载会清除应用私有数据；重新检查三个 LSPosed 作用域、按需重新授权，并重启平板。 |
+
+自行构建的调试包能否覆盖安装取决于实际证书。可用 `apksigner verify --print-certs` 检查，0.3.0 的证书指纹见发布说明。
 
 ## 从源码安装（可选）
 
@@ -64,4 +74,4 @@ HyperKey 让你决定小米平板的实体键盘快捷键在哪里生效。例�
 - [实现说明](docs/IMPLEMENTATION.md)与[实机验证记录](docs/VALIDATION.md)：适配逻辑、已验证行为和测试边界。
 - [贡献指南](CONTRIBUTING.md)：构建检查、报告新固件和提交修改。
 
-本仓库尚未附项目许可证。第三方依赖各自适用其上游许可证。
+本仓库尚未附项目许可证。第三方运行时依赖及许可证已随 APK 打包，见[第三方清单](app/src/main/assets/third_party/NOTICE.txt)。

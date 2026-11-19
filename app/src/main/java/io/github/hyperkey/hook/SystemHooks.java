@@ -13,7 +13,7 @@ import java.util.List;
 final class SystemHooks {
     private final HyperKeyModule module;
     private final RuntimeConfig config = new RuntimeConfig();
-    private final KeyRoute route = new KeyRoute();
+    private final KeyRoute route = new KeyRoute(config);
     private final List<String> missing = new ArrayList<>();
     private int installed;
     SystemHooks(HyperKeyModule module) { this.module = module; }
@@ -24,8 +24,8 @@ final class SystemHooks {
         install(loader, service, "interceptKeyBeforeQueueing", chain -> {
             KeyEvent event = keyEvent(chain);
             if (event != null) {
-                if (mappings.output(event) || route.testWin(event, config.keyTester())) return 1;
-                if (KeyRoute.isKeyboard(event) && config.mappingEditor()) return 1;
+                if (mappings.output(event) || route.directWin(event, config.keyTester() || config.profileRawWin())) return 1;
+                if (KeyRoute.isKeyboard(event) && config.mappingEditor() && io.github.hyperkey.core.KeyMappings.keyAllowed(event.getKeyCode())) return 1;
                 if (mappings.handle(chain.getThisObject(), event)) return 0;
                 if (route.bypass(event, config.get(), rawWin(event))) return 1;
             }
@@ -33,12 +33,12 @@ final class SystemHooks {
         }, true);
         install(loader, service, "interceptKeyBeforeDispatching", chain -> {
             KeyEvent event = keyEvent(chain);
-            if (event != null && (mappings.output(event) || route.testWin(event, config.keyTester()) || (KeyRoute.isKeyboard(event) && config.mappingEditor()) || route.bypass(event, config.get(), rawWin(event)))) return 0L;
+            if (event != null && (mappings.output(event) || route.directWin(event, config.keyTester() || config.profileRawWin()) || (KeyRoute.isKeyboard(event) && config.mappingEditor() && io.github.hyperkey.core.KeyMappings.keyAllowed(event.getKeyCode())) || route.bypass(event, config.get(), rawWin(event)))) return 0L;
             return chain.proceed();
         }, true);
         install(loader, service, "interceptUnhandledKey", chain -> {
             KeyEvent event = keyEvent(chain);
-            if (event != null && (mappings.output(event) || route.testWin(event, config.keyTester()) || route.bypass(event, config.get(), rawWin(event)))) return false;
+            if (event != null && (mappings.output(event) || route.directWin(event, config.keyTester() || config.profileRawWin()) || route.bypass(event, config.get(), rawWin(event)))) return false;
             return chain.proceed();
         }, true);
         NativeShortcutSync nativeSync = new NativeShortcutSync(loader);
@@ -61,7 +61,7 @@ final class SystemHooks {
         }, true);
         install(loader, rule, "execute", chain -> {
             Shortcut shortcut = ruleShortcut(chain.getThisObject());
-            if (config.get().blockAll || (shortcut != null && config.get().isBlocked(shortcut))) return null;
+            if (shortcut != null && config.get().isBlocked(shortcut)) return null;
             return chain.proceed();
         }, true);
         String extension = "com.android.server.policy.MiuiKeyInterceptExtend";
@@ -104,13 +104,6 @@ final class SystemHooks {
                 } finally { config.leave(old); }
             }, true);
         }
-        install(loader, extension, "getKeyboardShortcutEnable", chain ->
-                config.get().blockAll ? false : chain.proceed(), true);
-        install(loader, extension, "interceptMiuiKeyboard", chain -> {
-            KeyEvent event = keyEvent(chain);
-            if (event != null && KeyRoute.isKeyboard(event) && config.get().blockAll) return false;
-            return chain.proceed();
-        }, true);
 
         String policy = "com.android.server.policy.BaseMiuiPhoneWindowManager";
         install(loader, policy, "handleAltTab", chain -> {
@@ -129,13 +122,13 @@ final class SystemHooks {
         }, false);
         install(loader, policy, "showKeyboardShortcutsMenu", chain -> {
             if (chain.getArgs().size() == 3 && Boolean.TRUE.equals(chain.getArg(1)) &&
-                    Boolean.TRUE.equals(chain.getArg(2)) && (config.keyTester() || config.get().isBlocked(Shortcut.META_HOLD))) return null;
+                    Boolean.TRUE.equals(chain.getArg(2)) && (config.keyTester() || config.profileRawWin() || config.get().isBlocked(Shortcut.META_HOLD))) return null;
             return chain.proceed();
         }, true);
         String input = "com.android.server.input.InputManagerServiceStubImpl";
         install(loader, input, "notifyKeyboardShortcutKey", chain -> {
             if ("KEY_META".equals(chain.getArg(0))) {
-                if (config.keyTester()) return null;
+                if (config.keyTester() || config.profileRawWin()) return null;
                 Object action = chain.getArg(1);
                 if ("SINGLE_CLICK".equals(action) && config.get().isBlocked(Shortcut.META_SINGLE)) return null;
                 if ("DOUBLE_CLICK".equals(action) && config.get().isBlocked(Shortcut.META_DOUBLE)) return null;
@@ -178,11 +171,11 @@ final class SystemHooks {
 
     private void startConfig(Object owner) throws ReflectiveOperationException {
         Context context = (Context) Reflect.field(owner, "mContext");
-        config.start(context, installed, missing.isEmpty() ? "系统拦截已加载" : "部分适配，缺少 " + missing.size() + " 个入口");
+        config.start(context, installed, missing.isEmpty() ? "系统拦截已加载" : "partial:" + missing.size());
     }
     private boolean rawWin(KeyEvent event) {
         return KeyRoute.isKeyboard(event) && config.rawWin() &&
-                (event.getKeyCode() == KeyEvent.KEYCODE_META_LEFT || event.getKeyCode() == KeyEvent.KEYCODE_META_RIGHT || event.isMetaPressed());
+                (event.getKeyCode() == KeyEvent.KEYCODE_META_LEFT || event.getKeyCode() == KeyEvent.KEYCODE_META_RIGHT);
     }
     private Shortcut ruleShortcut(Object rule) throws ReflectiveOperationException {
         Object info = Reflect.field(rule, "mKeyboardShortcutInfo");

@@ -10,8 +10,8 @@ android {
         applicationId = "io.github.hyperkey"
         minSdk = 29
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.2.1"
+        versionCode = 5
+        versionName = "0.3.0"
     }
     buildFeatures { compose = true; buildConfig = true }
     bundle { language { enableSplit = false } }
@@ -21,9 +21,13 @@ android {
     }
     kotlin { jvmToolchain(17) }
     buildTypes {
-        release { isMinifyEnabled = false }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
     }
-    packaging { resources.excludes += setOf("META-INF/LICENSE*", "META-INF/NOTICE*") }
+    packaging { resources.merges += setOf("META-INF/LICENSE*", "META-INF/NOTICE*") }
 }
 dependencies {
     compileOnly("io.github.libxposed:api:102.0.0")

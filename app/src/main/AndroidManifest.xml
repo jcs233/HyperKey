@@ -12,11 +12,13 @@
     </queries>
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/backup_rules"
         android:label="HyperKey"
         android:icon="@drawable/ic_launcher"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity android:name=".ui.ProfileActivity" android:exported="true" />
+        <activity android:name=".ui.ShortcutActionActivity" android:exported="false" android:excludeFromRecents="true" android:taskAffinity="io.github.hyperkey.actions" />
         <activity android:name=".ui.MappingActivity" android:exported="false" />
         <activity android:name=".ui.AppearanceActivity" android:exported="false" />
         <activity android:name=".ui.KeyTestActivity" android:exported="true" />

@@ -7,3 +7,6 @@
 gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
+# Preserve the upstream license texts packaged in the release APK.
+app/src/main/assets/third_party/Apache-2.0.txt text eol=lf whitespace=-blank-at-eof
+app/src/main/assets/third_party/MaterialKolor-MIT.txt text eol=lf

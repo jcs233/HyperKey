@@ -28,3 +28,7 @@ Windows PowerShell 使用 `.\gradlew.bat` 代替 `./gradlew`。单元测试覆�
 - PR 描述写明原来如何复现、修改后的行为、验证环境和未测试的部分。只提交与改动相关的源码、测试或说明。请勿提交 APK、签名密钥、`local.properties`、设备提取物、日志、构建缓存或个人截图。
 
 仓库未附项目许可证；请勿提交无权分享的第三方代码、固件或资源。
+
+发布构建使用 `:app:assembleRelease` 启用 R8 及资源裁剪。修改模块入口、反射创建的 ViewModel 或写入设置的枚举时，同时核对 [R8 规则](app/proguard-rules.pro)。发布前检查最终 APK 的 `META-INF/xposed/java_init.list` 与 DEX 中的入口、构造函数及回调；保留该构建的 `app/build/outputs/mapping/release/mapping.txt` 以还原崩溃堆栈。
+
+从 0.3.0 起，正式附件与项目分发的测试版使用同一把签名密钥。维护者在仓库外签署 Release APK，使用 `apksigner verify --print-certs` 核对证书 SHA-256：`b01ac4af832f7126ad1bb08f2467095a2b452af4a32b738eed8cf7f9fa10a7b8`。不要用新机器自动生成的调试密钥替代它。校验文件应对最终签名后的附件计算。

@@ -8,9 +8,19 @@ HyperKey is an LSPosed module for physical keyboards on Xiaomi HyperOS tablets. 
 
 ## Build and install
 
-**[Download the signed HyperKey 0.2.0 APK](https://github.com/jcs233/HyperKey/releases/download/v0.2.0/HyperKey-0.2.0.apk)** · [Release notes and SHA-256 checksum](https://github.com/jcs233/HyperKey/releases/tag/v0.2.0)
+**[Download HyperKey 0.3.0 (2.33 MiB)](https://github.com/jcs233/HyperKey/releases/download/v0.3.0/HyperKey-0.3.0.apk)** · [Release notes and SHA-256 checksum](https://github.com/jcs233/HyperKey/releases/tag/v0.3.0)
 
-Install the APK on the tablet, or run `adb install -r HyperKey-0.2.0.apk` from the download directory. The release uses a different signing key from development builds. If a debug build is already installed, record your settings, uninstall it, install the release and recheck the LSPosed scopes and permission.
+Use the [108-key picker](docs/assets/keyboard-108.svg), search Android keycodes, or record a chord on a physical keyboard. A shortcut can now open an app, a public app activity or a settings page, or run a command. Normal commands run as HyperKey's app user. Root commands show the full command for confirmation and run only after the same superuser session confirms UID 0. Version 0.3.0 passed 30 unit tests; the tablet results above are from earlier versions.
+
+**Install or upgrade:** This optimized release build uses the project's test signing certificate.
+
+| Currently installed | How to upgrade |
+| --- | --- |
+| Nothing | Open the downloaded APK, then enable the module as described below. |
+| A project test build signed with the same certificate | Install over it, or run `adb install -r HyperKey-0.3.0.apk`. If you already use `0.3.0-compact-test`, the published APK is byte-for-byte identical. |
+| The GitHub 0.2.0 release, or a 0.2.1 build signed with the old release key | Android cannot update across these certificates. Record any settings you want to keep before uninstalling; this clears private app data. Install 0.3.0, recheck the three LSPosed scopes, re-grant the permission below if needed, and reboot. |
+
+Self-built debug APKs may use a different key. Compare `apksigner verify --print-certs` output with the certificate fingerprint in the release notes.
 
 To build a debug APK yourself instead, use JDK 17, Android SDK Platform 36 and Android Platform-Tools:
 
@@ -42,4 +52,4 @@ adb shell pm grant io.github.hyperkey android.permission.WRITE_SECURE_SETTINGS
 
 To stop using HyperKey, disable it in LSPosed and reboot. Individual choices already synced to Xiaomi’s native settings may remain; change them in the native editor if needed. The companion app declares no Internet permission, and the key tester keeps only its last 16 events in memory.
 
-See the [usage guide](docs/USAGE.md), [troubleshooting guide](docs/TROUBLESHOOTING.md), [privacy and permissions](docs/PRIVACY.md), and [contribution guide](CONTRIBUTING.md) (Chinese). This repository does not currently include a project license; third-party dependencies retain their respective licenses.
+See the [usage guide](docs/USAGE.md), [troubleshooting guide](docs/TROUBLESHOOTING.md), [privacy and permissions](docs/PRIVACY.md), and [contribution guide](CONTRIBUTING.md) (Chinese). This repository does not currently include a project license; see the [third-party APK inventory](app/src/main/assets/third_party/NOTICE.txt) for dependency licenses.
