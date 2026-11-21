@@ -24,6 +24,8 @@ final class RuntimeConfig {
     private volatile String focusedPackage = "";
     private volatile boolean mappingEditor;
     private volatile boolean keyTester;
+    private volatile boolean blockTouchpadScreenshot;
+    boolean blockTouchpadScreenshot() { return blockTouchpadScreenshot; }
     private volatile boolean actionScreen;
     private final ThreadLocal<Snapshot> dispatch = new ThreadLocal<>();
     record Snapshot(Config config, AppProfiles.Profile profile) {}
@@ -47,9 +49,12 @@ final class RuntimeConfig {
         return new Snapshot(profile == null ? value.global : profile.resolve(value.global), profile);
     }
     Config get() { return snapshot().config; }
-    KeyMappings.Rule mapping(int key, int modifiers) {
+    private volatile long focusEpoch;
+    long focusEpoch() { return focusEpoch; }
+    KeyMappings currentMappings() { return state.mappings; }
+    KeyMappings.Rule mapping(int key, int modifiers, java.util.Set<Integer> held) {
         State value = state;
-        return value.mappings.forProfile(focusedPackage, value.profiles, key, modifiers);
+        return value.mappings.forProfile(focusedPackage, value.profiles, key, modifiers, held);
     }
     Context context() { return activeContext; }
     boolean profileRawWin() { AppProfiles.Profile p = snapshot().profile(); return p != null && p.enabled && p.rawWin; }
@@ -78,7 +83,7 @@ final class RuntimeConfig {
         String name = "";
         try { if (window != null) name = (String) Reflect.call(window, "getOwningPackage"); }
         catch (ReflectiveOperationException | RuntimeException ignored) { }
-        focusedPackage = name == null ? "" : name;
+        String next = name == null ? "" : name; if (!next.equals(focusedPackage)) focusEpoch++; focusedPackage=next;
         String ownWindow = "io.github.hyperkey".equals(focusedPackage) && window != null ? window.toString() : "";
         mappingEditor = ownWindow.contains(".ui.MappingActivity");
         actionScreen = ownWindow.contains(".ui.ShortcutActionActivity");
@@ -104,7 +109,7 @@ final class RuntimeConfig {
 
     synchronized void switchUser(int id) {
         if (baseContext == null || userId == id) return;
-        userId = id; activeContext = null;
+        userId = id; activeContext = null; blockTouchpadScreenshot = false;
         if (nativeSync != null) nativeSync.reset();
         // Drop the previous user's overrides even if the new user's provider is not ready.
         state = new State(Config.DEFAULT, AppProfiles.EMPTY, KeyMappings.EMPTY);
@@ -126,6 +131,7 @@ final class RuntimeConfig {
             observer = new ContentObserver(handler) {
                 @Override public void onChange(boolean selfChange) { if (activeContext == userContext) reload(userContext); }
             };
+            resolver.registerContentObserver(Settings.Secure.getUriFor(io.github.hyperkey.core.TouchpadScreenshot.SETTING), false, observer);
             resolver.registerContentObserver(Settings.Secure.getUriFor(Config.SETTING), false, observer);
             resolver.registerContentObserver(Settings.Secure.getUriFor(AppProfiles.SETTING), false, observer);
             resolver.registerContentObserver(Settings.Secure.getUriFor(KeyMappings.SETTING), false, observer);
@@ -150,6 +156,8 @@ final class RuntimeConfig {
     }
     private synchronized void reload(Context context) {
         if (context != activeContext) return;
+        try { blockTouchpadScreenshot = ConfigStore.blockTouchpadScreenshot(context); }
+        catch (RuntimeException e) { blockTouchpadScreenshot = false; Log.w("HyperKey", "Cannot read touchpad setting", e); }
         try {
             Config requested = ConfigStore.read(context);
             state = new State(!nativeReady ? requested : nativeSync.reconcile(requested), ProfileStore.read(context), MappingStore.read(context));

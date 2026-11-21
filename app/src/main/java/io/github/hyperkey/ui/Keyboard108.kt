@@ -16,7 +16,7 @@ internal val keyboard108: List<BoardKey> = buildList {
     fun cap(code: Int, legend: String, x: Float, y: Float, w: Float = 1f, h: Float = 1f) { add(BoardKey(code,legend,x,y,w,h)) }
     fun letters(text: String, x: Float, y: Float) = text.forEachIndexed { i,c -> cap(KEYCODE_A + (c-'A'),c.toString(),x+i,y) }
     fun row(x: Float, y: Float, vararg keys: Pair<Int,String>) = keys.forEachIndexed { i,(code,label) -> cap(code,label,x+i,y) }
-    cap(KEYCODE_ESCAPE,"Esc",0f,0f)
+    cap(KEYCODE_ESCAPE,"Esc",0f,0f); cap(KEYCODE_FUNCTION,"Fn",1f,0f)
     repeat(12) { i -> cap(KEYCODE_F1+i,"F${i+1}",2f+i+(i/4)*.5f,0f) }
     val y=1.3f
     cap(KEYCODE_GRAVE,"` ~",0f,y)
@@ -42,17 +42,53 @@ internal val keyboard108: List<BoardKey> = buildList {
     cap(KEYCODE_NUMPAD_0,"0",19f,y+4,2f); cap(KEYCODE_NUMPAD_DOT,".",21f,y+4)
 }
 
-/** Tapping Ctrl then K builds Ctrl+K; tapping Ctrl alone (from an empty draft) binds left/right Ctrl. */
-internal data class BoardChord(val code: Int = 0, val mods: Int = 0) {
+/** Ordinary keys accumulate; the final one triggers the chord. Modifier groups remain side-neutral
+ * except when a modifier itself is the trigger (e.g. right Ctrl). */
+internal data class BoardChord(val code: Int = 0, val mods: Int = 0, val held: List<Int> = emptyList()) {
+    fun selected(k: Int) = k == code || k in held || (KeyMeta.group(k) and mods != 0)
+    fun pack() = intArrayOf(code,mods,*held.toIntArray())
     fun tap(next: Int): BoardChord {
         if (!KeyMappings.keyAllowed(next)) return this
-        if (code == 0) return BoardChord(next)
-        val oldGroup = KeyMeta.group(code); val newGroup = KeyMeta.group(next)
-        if (oldGroup != 0) {
-            if (next == code) return this
-            return BoardChord(next, (mods or oldGroup) and newGroup.inv())
+        val group = KeyMeta.group(next)
+        val primaryGroup = KeyMeta.group(code)
+        if (group != 0) {
+            if (code == 0) return BoardChord(next)
+            if (primaryGroup == 0) return copy(mods = mods xor group)
+            if (next == code) return modifiersOnly(mods)
+            if (group == primaryGroup) return copy(code=next)
+            if (mods and group != 0) return copy(mods=mods xor group)
+            return BoardChord(next,mods or primaryGroup)
         }
-        if (newGroup != 0) return copy(mods = mods xor newGroup)
-        return copy(code = next)
+        val ordinary = if (code == 0 || primaryGroup != 0) emptyList() else held + code
+        val keys = when { next in ordinary -> ordinary - next; ordinary.size < KeyMappings.MAX_ORDINARY -> ordinary + next; else -> return this }
+        val mask = mods or primaryGroup
+        return if (keys.isEmpty()) modifiersOnly(mask) else BoardChord(keys.last(),mask,keys.dropLast(1))
+    }
+    companion object {
+        fun unpack(a: IntArray?) = if(a==null || a.size<2) BoardChord() else BoardChord(a[0],a[1],a.drop(2))
+        private fun modifiersOnly(mask: Int): BoardChord {
+            val k = listOf(KEYCODE_CTRL_LEFT, KEYCODE_ALT_LEFT, KEYCODE_SHIFT_LEFT, KEYCODE_META_LEFT, KEYCODE_FUNCTION)
+                .lastOrNull { mask and KeyMeta.group(it) != 0 } ?: return BoardChord()
+            return BoardChord(k, mask and KeyMeta.group(k).inv())
+        }
+    }
+}
+
+/** Records simultaneous downs from one device. An up confirms the peak chord; later ups are drained. */
+internal class ChordRecording {
+    private val pressed = linkedSetOf<Int>()
+    private var device: Int? = null
+    var chord = BoardChord(); private set
+    var overflow = false; private set
+    fun contains(id: Int, key: Int) = device == id && key in pressed
+    fun accepts(id: Int) = device == null || device == id
+    fun down(id: Int, code: Int, meta: Int) {
+        if (!accepts(id) || !KeyMappings.keyAllowed(code) || !pressed.add(code)) return
+        device = id
+        val ordinary = pressed.filter { KeyMeta.group(it) == 0 }
+        if (ordinary.size > KeyMappings.MAX_ORDINARY) { overflow = true; return }
+        val trigger = ordinary.lastOrNull() ?: code
+        val groups = pressed.fold(meta and KeyMappings.MODIFIERS) { m,k -> m or KeyMeta.group(k) }
+        chord = BoardChord(trigger,groups and KeyMeta.group(trigger).inv(),ordinary.dropLast(1))
     }
 }

@@ -30,7 +30,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 class KeyTestActivity : ThemedActivity() {
     private var display by mutableStateOf(KeyDisplay())
     private val mods = listOf("Ctrl" to KeyEvent.META_CTRL_ON, "Alt" to KeyEvent.META_ALT_ON,
-        "Shift" to KeyEvent.META_SHIFT_ON, "Win" to KeyEvent.META_META_ON)
+        "Shift" to KeyEvent.META_SHIFT_ON, "Win" to KeyEvent.META_META_ON, "Fn" to KeyEvent.META_FUNCTION_ON)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,7 +76,8 @@ class KeyTestActivity : ThemedActivity() {
                             }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 mods.forEach { (name, mask) ->
-                                    val active = display.held.isNotEmpty() && (KeyEvent.normalizeMetaState(last?.meta ?: 0) and mask) != 0
+                                    val active = display.held.any { io.github.hyperkey.core.KeyMeta.group(it.code)==mask } ||
+                                        (display.held.isNotEmpty() && (KeyEvent.normalizeMetaState(last?.meta ?: 0) and mask) != 0)
                                     val state = stringResource(if (active) R.string.kt_down else R.string.kt_up)
                                     Text(if (active) "● $name" else name, fontSize = 13.sp,
                                         color = if (active) colors.onPrimary else muted,
@@ -111,6 +112,7 @@ class KeyTestActivity : ThemedActivity() {
         val muted = colors.onSurfaceVariantSummary
         val name = when (key.code) {
             KeyEvent.KEYCODE_META_LEFT, KeyEvent.KEYCODE_META_RIGHT -> "Win"
+            KeyEvent.KEYCODE_FUNCTION -> "Fn"
             KeyEvent.KEYCODE_CTRL_LEFT, KeyEvent.KEYCODE_CTRL_RIGHT -> "Ctrl"
             KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT -> "Shift"
             KeyEvent.KEYCODE_ALT_LEFT, KeyEvent.KEYCODE_ALT_RIGHT -> "Alt"

@@ -8,17 +8,20 @@ HyperKey is an LSPosed module for physical keyboards on Xiaomi HyperOS tablets. 
 
 ## Build and install
 
-**[Download HyperKey 0.3.0 (2.33 MiB)](https://github.com/jcs233/HyperKey/releases/download/v0.3.0/HyperKey-0.3.0.apk)** · [Release notes and SHA-256 checksum](https://github.com/jcs233/HyperKey/releases/tag/v0.3.0)
+**[Download HyperKey 0.3.2 (2.33 MiB)](https://github.com/jcs233/HyperKey/releases/download/v0.3.2/HyperKey-0.3.2.apk)** · [Release notes and SHA-256 checksum](https://github.com/jcs233/HyperKey/releases/tag/v0.3.2)
 
-Use the [108-key picker](docs/assets/keyboard-108.svg), search Android keycodes, or record a chord on a physical keyboard. A shortcut can now open an app, a public app activity or a settings page, or run a command. Normal commands run as HyperKey's app user. Root commands show the full command for confirmation and run only after the same superuser session confirms UID 0. Version 0.3.0 passed 30 unit tests; the tablet results above are from earlier versions.
+- To block three-finger swipe-down screenshots on the physical touchpad, turn on the switch in HyperKey or either keyboard settings page. It is off by default, independent of the keyboard master switch, and leaves the touchscreen and keyboard screenshot settings unchanged.
+- The [108-key picker](docs/assets/keyboard-108.svg) now includes Fn and can map chords with multiple ordinary keys and modifiers on both input and output. For `A+B+C`, hold A and B, then press C. The app still receives the companion keys. A firmware-only Fn layer can only be bound by the translated key Android receives.
 
-**Install or upgrade:** This optimized release build uses the project's test signing certificate.
+Version 0.3.2 passed 40 unit tests. The tablet results above are from earlier versions; actual Fn reporting, multi-key mappings and touchpad screenshot blocking still need verification on the target tablet.
+
+**Install or upgrade:** This release uses the same certificate as the 0.3.0 release and project test builds.
 
 | Currently installed | How to upgrade |
 | --- | --- |
 | Nothing | Open the downloaded APK, then enable the module as described below. |
-| A project test build signed with the same certificate | Install over it, or run `adb install -r HyperKey-0.3.0.apk`. If you already use `0.3.0-compact-test`, the published APK is byte-for-byte identical. |
-| The GitHub 0.2.0 release, or a 0.2.1 build signed with the old release key | Android cannot update across these certificates. Record any settings you want to keep before uninstalling; this clears private app data. Install 0.3.0, recheck the three LSPosed scopes, re-grant the permission below if needed, and reboot. |
+| The GitHub 0.3.0 release, the project's 0.3.1 build, or an earlier build with the same certificate | Install over it, or run `adb install -r HyperKey-0.3.2.apk`. Reboot to load the updated system hooks. |
+| The GitHub 0.2.0 release, or a 0.2.1 build signed with the old release key | Record any settings you want to keep before uninstalling; uninstalling clears private app data. Install 0.3.2, recheck the three LSPosed scopes, re-grant the permission below if needed, and reboot. |
 
 Self-built debug APKs may use a different key. Compare `apksigner verify --print-certs` output with the certificate fingerprint in the release notes.
 

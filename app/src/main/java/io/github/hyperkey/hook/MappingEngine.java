@@ -5,6 +5,8 @@ import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
 import io.github.hyperkey.core.KeyMeta;
+import io.github.hyperkey.core.HeldChordKeys;
+import io.github.hyperkey.core.TargetChord;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
@@ -16,7 +18,9 @@ import java.util.*;
 
 /** Pairs transformed down/up events and never feeds output back into mapping lookup. */
 final class MappingEngine {
-    private record Press(long downTime, KeyMappings.Rule rule) {}
+    private record Press(long downTime, KeyMappings.Rule rule, TargetChord target) {}
+    private final HeldChordKeys held = new HeldChordKeys();
+    private final TargetChord.Ledger ledger = new TargetChord.Ledger();
     private record Token(long downTime, long eventTime, int device, int key, int action, int repeat) {}
     private final Map<Long, Press> pressed = new HashMap<>();
     private final Map<Token, Long> outputs = new HashMap<>();
@@ -26,6 +30,7 @@ final class MappingEngine {
     MappingEngine(RuntimeConfig config, ClassLoader loader) { this.config = config; this.loader = loader; }
     private static Token token(KeyEvent e) { return new Token(e.getDownTime(), e.getEventTime(), e.getDeviceId(), e.getKeyCode(), e.getAction(), e.getRepeatCount()); }
     synchronized boolean output(KeyEvent e) {
+        if ((e.getFlags() & KeyEvent.FLAG_FALLBACK) == 0) return false;
         Long expiry = outputs.get(token(e));
         return expiry != null && expiry > SystemClock.uptimeMillis();
     }
@@ -33,21 +38,34 @@ final class MappingEngine {
         if (handler == null) { HandlerThread thread = new HandlerThread("HyperKeyMappings"); thread.start(); handler = new Handler(thread.getLooper()); }
         return handler;
     }
-    synchronized boolean handle(Object service, KeyEvent event) {
+    synchronized boolean handle(Object service, KeyEvent event, boolean bypass) {
         if (output(event) || !KeyRoute.isKeyboard(event) || (event.getFlags() & KeyEvent.FLAG_FALLBACK) != 0) return false;
         long key = ((long) event.getDeviceId() << 32) | (event.getKeyCode() & 0xffffffffL);
         Press press = pressed.get(key);
-        if (press != null && press.downTime != event.getDownTime()) { pressed.remove(key); press = null; }
+        boolean down=event.getAction()==KeyEvent.ACTION_DOWN;
+        if (!down && event.getAction()!=KeyEvent.ACTION_UP) return false;
+        if (press != null && press.downTime != event.getDownTime()) {
+            if (!down) return false; // late UP from an older stroke
+            if (press.target!=null) press.target.emit(ledger,event.getDeviceId(),false,0,press.downTime,press.rule.targetModifiers(),
+                    (k,t,m,r)->inject(service,event,k,t,KeyEvent.ACTION_UP,m,r));
+            pressed.remove(key); press=null;
+        }
+        int device=event.getDeviceId(), code=event.getKeyCode();
+        KeyMappings mappings=config.currentMappings(); held.scope(mappings,config.focusEpoch());
+        if (bypass || config.actionScreen()) held.clear(device);
+        if (bypass && press==null) return false;
         int normalized = KeyEvent.normalizeMetaState(event.getMetaState()) & KeyMappings.MODIFIERS;
-        int sourceModifiers = normalized & ~KeyMeta.group(event.getKeyCode());
-        if (press == null && !config.actionScreen() && event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
-            KeyMappings.Rule rule = config.mapping(event.getKeyCode(), sourceModifiers);
+        if (held.get(device).contains(KeyEvent.KEYCODE_FUNCTION)) normalized |= KeyEvent.META_FUNCTION_ON;
+        int sourceModifiers = normalized & ~KeyMeta.group(code);
+        if (press == null && !bypass && !config.actionScreen() && event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+            KeyMappings.Rule rule = config.mapping(code, sourceModifiers, held.get(device));
             if (rule != null && (rule.keyTarget() || !config.get().blockAll)) {
-                press = new Press(event.getDownTime(), rule);
+                press = new Press(event.getDownTime(), rule, rule.keyTarget() ? new TargetChord(rule, normalized) : null);
                 if (pressed.size() > 128) return false;
                 pressed.put(key, press);
             }
         }
+        if (!bypass && !config.actionScreen()) held.update(device,code,down, event.getRepeatCount()==0 && (mappings.tracks(code) || (code==KeyEvent.KEYCODE_FUNCTION && !mappings.rules.isEmpty())));
         int transformedMeta = event.getMetaState();
         boolean modifierChanged = false;
         for (Map.Entry<Long, Press> item : pressed.entrySet()) {
@@ -74,12 +92,17 @@ final class MappingEngine {
             }
             return true;
         }
-        int target = press == null ? event.getKeyCode() : press.rule.targetKey();
-        if (press != null && KeyMeta.group(target) == 0)
-            transformedMeta = KeyMeta.remove(transformedMeta, press.rule.sourceModifiers() & ~press.rule.targetModifiers()) | press.rule.targetModifiers();
-        KeyEvent mapped = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), target,
-                event.getRepeatCount(), transformedMeta, event.getDeviceId(), target == event.getKeyCode() ? event.getScanCode() : 0,
-                event.getFlags() | KeyEvent.FLAG_FALLBACK, event.getSource());
+        if (press != null) {
+            KeyMappings.Rule r=press.rule;
+            transformedMeta=KeyMeta.remove(transformedMeta,r.sourceModifiers() & ~r.targetModifiers()) | r.targetModifiers();
+            press.target.emit(ledger,device,down,event.getRepeatCount(),event.getDownTime(),transformedMeta,
+                    (k,t,m,repeat)->inject(service,event,k,t,event.getAction(),m,repeat));
+        } else inject(service,event,code,event.getDownTime(),event.getAction(),transformedMeta,event.getRepeatCount());
+        return true;
+    }
+    private void inject(Object service,KeyEvent event,int target,long time,int action,int meta,int repeat) {
+        KeyEvent mapped = new KeyEvent(time,event.getEventTime(),action,target,repeat,meta,event.getDeviceId(),
+                target==event.getKeyCode()?event.getScanCode():0,event.getFlags()|KeyEvent.FLAG_FALLBACK,event.getSource());
         try { Reflect.call(mapped, "setDisplayId", Reflect.call(event, "getDisplayId")); }
         catch (ReflectiveOperationException ignored) { }
         long now = SystemClock.uptimeMillis();
@@ -92,7 +115,6 @@ final class MappingEngine {
             } catch (ReflectiveOperationException | RuntimeException e) { Log.w("HyperKey", "Mapping injection failed", e); }
             finally { Binder.restoreCallingIdentity(identity); }
         });
-        return true;
     }
     private void action(Shortcut action) {
         try {

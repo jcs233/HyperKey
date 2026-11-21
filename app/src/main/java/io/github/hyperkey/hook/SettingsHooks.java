@@ -149,6 +149,10 @@ final class SettingsHooks {
                 binding.refresh();
             });
         }
+        Object touchpadGroup = category(screen, context, "hyperkey_touchpad_group", UiText.text(context, "touchpad_group"), -150);
+        binding.touchpad = preference(touchpadGroup, context, "hyperkey_touchpad_down", UiText.text(context, "touchpad_block_down"),
+                UiText.text(context, "touchpad_down_hint"), true);
+        onChange(binding.touchpad, block -> { ConfigStore.setBlockTouchpadScreenshot(binding.context, block); binding.refresh(); });
         Object actions = category(screen, context, "hyperkey_actions", UiText.text(context, "module_management"), 1000);
         Object openModule = preference(actions, context, "hyperkey_open_module", UiText.text(context, "open_hyperkey"), "", false);
         onClick(openModule, () -> context.startActivity(new android.content.Intent(android.content.Intent.ACTION_MAIN)
@@ -257,6 +261,7 @@ final class SettingsHooks {
         String nativeRevision;
         final Map<Shortcut, Object> switches = new EnumMap<>(Shortcut.class);
         Object master;
+        Object touchpad;
         Object status;
         final ContentObserver observer = new ContentObserver(handler) {
             @Override public void onChange(boolean selfChange) {
@@ -267,6 +272,7 @@ final class SettingsHooks {
         };
         Binding(Context context, Object fragment) { this.context = context; this.fragment = new WeakReference<>(fragment); }
         void observe() {
+            context.getContentResolver().registerContentObserver(Settings.Secure.getUriFor(io.github.hyperkey.core.TouchpadScreenshot.SETTING), false, observer);
             context.getContentResolver().registerContentObserver(Settings.Secure.getUriFor(Config.SETTING), false, observer);
             context.getContentResolver().registerContentObserver(Settings.Secure.getUriFor(HookStatus.SYSTEM), false, observer);
             context.getContentResolver().registerContentObserver(Settings.Secure.getUriFor(NativeShortcutSync.REVISION), false, observer);
@@ -276,6 +282,7 @@ final class SettingsHooks {
             Config value = ConfigStore.read(context);
             if (dedicated) refreshNative(value);
             Reflect.call(master, "setChecked", value.blockAll);
+            Reflect.call(touchpad, "setChecked", ConfigStore.blockTouchpadScreenshot(context));
             for (Map.Entry<Shortcut, Object> entry : switches.entrySet()) {
                 Reflect.call(entry.getValue(), "setChecked", value.isIndividuallyEnabled(entry.getKey()));
                 Reflect.call(entry.getValue(), "setEnabled", !value.blockAll);

@@ -16,17 +16,23 @@ final class SystemHooks {
     private final KeyRoute route = new KeyRoute(config);
     private final List<String> missing = new ArrayList<>();
     private int installed;
+    private boolean touchpadSupported;
     SystemHooks(HyperKeyModule module) { this.module = module; }
 
     void install(ClassLoader loader) {
+        touchpadSupported = TouchpadScreenshotHook.install(module, loader, config);
+        if (touchpadSupported) installed++;
         MappingEngine mappings = new MappingEngine(config, loader);
         String service = "com.android.server.input.InputManagerService";
         install(loader, service, "interceptKeyBeforeQueueing", chain -> {
             KeyEvent event = keyEvent(chain);
             if (event != null) {
-                if (mappings.output(event) || route.directWin(event, config.keyTester() || config.profileRawWin())) return 1;
+                if (mappings.output(event)) return 1;
+                boolean direct=route.directWin(event, config.keyTester() || config.profileRawWin());
+                if (mappings.handle(chain.getThisObject(),event,direct || config.mappingEditor() || config.keyTester())) return 0;
+                if (direct) return 1;
                 if (KeyRoute.isKeyboard(event) && config.mappingEditor() && io.github.hyperkey.core.KeyMappings.keyAllowed(event.getKeyCode())) return 1;
-                if (mappings.handle(chain.getThisObject(), event)) return 0;
+
                 if (route.bypass(event, config.get(), rawWin(event))) return 1;
             }
             return chain.proceed();
@@ -171,7 +177,7 @@ final class SystemHooks {
 
     private void startConfig(Object owner) throws ReflectiveOperationException {
         Context context = (Context) Reflect.field(owner, "mContext");
-        config.start(context, installed, missing.isEmpty() ? "系统拦截已加载" : "partial:" + missing.size());
+        config.start(context, installed, (missing.isEmpty() ? "系统拦截已加载" : "partial:" + missing.size()) + (touchpadSupported ? "" : ";pad_unavailable"));
     }
     private boolean rawWin(KeyEvent event) {
         return KeyRoute.isKeyboard(event) && config.rawWin() &&

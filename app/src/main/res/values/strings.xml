@@ -162,7 +162,7 @@
   <string name="user_command">App command</string>
   <string name="root_command">Root command</string>
   <string name="command_text">Shell command (up to 2048 characters)</string>
-  <string name="pick_keys">108-key keyboard</string>
+  <string name="pick_keys">108 keys + Fn</string>
   <string name="record_key">Record physical keys</string>
   <string name="search_key">Find key by name or Android keycode</string>
   <string name="root_explanation">On each trigger, review the command and confirm. HyperKey checks root in the same su session before sending any command. If authorization is denied, nothing runs.</string>
@@ -188,10 +188,16 @@
   <string name="board_nav">Navigation</string>
   <string name="board_pad">Numpad</string>
   <string name="board_search">Search keys</string>
-  <string name="board_help">Tap Ctrl, then K for Ctrl+K. Tap a modifier after a letter to toggle it. To bind a modifier alone, clear the selection and tap that key. Dimmed keys are reserved.</string>
+  <string name="board_help">Tap keys to add them; tap again to remove. Combine modifiers with up to 8 ordinary keys. The last ordinary key triggers the chord, e.g. Fn + Ctrl + K or A + B + C. Some keyboards do not report Fn to Android.</string>
   <string name="board_pan">Swipe sideways to see more keys ↔</string>
   <string name="board_selection">Current chord</string>
   <string name="board_reserved">Reserved by Android</string>
   <string name="board_reserved_key">Android · %1$d · Reserved</string>
   <string name="board_apply">Use keys</string>
+  <string name="chord_record_hint">Hold modifiers and companion keys, press the trigger last, then release any key to finish.</string>
+  <string name="chord_limit">Use up to 8 ordinary keys per chord.</string>
+  <string name="touchpad_group">Touchpad</string>
+  <string name="touchpad_block_down">Block three-finger swipe down screenshots on the touchpad</string>
+  <string name="touchpad_down_hint">Only affects the touchpad screenshot gesture. Independent of the keyboard master switch.</string>
+  <string name="touchpad_unavailable">Touchpad screenshot blocking is unavailable on this firmware</string>
 </resources>

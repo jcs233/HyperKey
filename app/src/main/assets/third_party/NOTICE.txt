@@ -1,4 +1,4 @@
-HyperKey 0.3.0 — release dependency inventory
+HyperKey — release dependency inventory
 Android Gradle Plugin release SDK dependency metadata. Includes transitive and multiplatform coordinates.
 License terms accompany this file. HyperKey itself is not licensed by this inventory.
 

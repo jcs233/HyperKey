@@ -28,16 +28,20 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.hyperkey.R
 import io.github.hyperkey.core.KeyMappings
-import io.github.hyperkey.core.KeyMeta
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-@Composable internal fun KeyboardPicker(title: String, initial: BoardChord, describe: (Int,Int)->String,
+@Composable internal fun KeyboardPicker(title: String, initial: BoardChord, describe: (BoardChord)->String,
     dismiss: ()->Unit, accept: (BoardChord)->Unit) {
-    var code by rememberSaveable { mutableIntStateOf(initial.code) }; var mods by rememberSaveable { mutableIntStateOf(initial.mods) }
+    var packed by rememberSaveable { mutableStateOf(initial.pack()) }; val chord=BoardChord.unpack(packed)
     var searching by rememberSaveable { mutableStateOf(false) }; var query by rememberSaveable { mutableStateOf("") }
     val colors = MiuixTheme.colorScheme
-    val select: (Int)->Unit = { next -> val changed = BoardChord(code,mods).tap(next); code=changed.code; mods=changed.mods }
+    val context=androidx.compose.ui.platform.LocalContext.current
+    val select: (Int)->Unit = { next ->
+        if (chord.held.size >= KeyMappings.MAX_ORDINARY-1 && !chord.selected(next) && io.github.hyperkey.core.KeyMeta.group(next)==0)
+            android.widget.Toast.makeText(context,R.string.chord_limit,android.widget.Toast.LENGTH_SHORT).show()
+        else packed = chord.tap(next).pack()
+    }
     Dialog(onDismissRequest=dismiss, properties=DialogProperties(usePlatformDefaultWidth=false)) {
         Column(Modifier.fillMaxSize().background(colors.background).safeDrawingPadding().imePadding()) {
             PageBar(stringResource(R.string.board_title,title), dismiss)
@@ -65,23 +69,23 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
                         if(hits.isEmpty()) Text(stringResource(R.string.no_matches),modifier=Modifier.padding(12.dp))
                         LazyColumn(Modifier.fillMaxWidth().weight(1f)) { items(hits,key={it}) { k ->
                             val enabled=KeyMappings.keyAllowed(k)
-                            val picked=k==code || KeyMeta.group(k) and mods != 0
+                            val picked=chord.selected(k)
                             BasicComponent(title=(if(picked) "✓  " else "")+keyLabel(k),summary=if(enabled) "Android · $k" else stringResource(R.string.board_reserved_key,k),
                                 enabled=enabled,onClick={ select(k) })
                         } }
                     } else {
                         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                             Text(stringResource(R.string.board_help),color=colors.onSurfaceVariantSummary,fontSize=13.sp)
-                            key(zone) { KeyboardSurface(zone,BoardChord(code,mods),select) }
+                            key(zone) { KeyboardSurface(zone,chord,select) }
                         }
                     }
                 }
             }
             Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=6.dp),horizontalArrangement=Arrangement.spacedBy(6.dp),verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) { Text(stringResource(R.string.board_selection),fontSize=12.sp,color=colors.onSurfaceVariantSummary)
-                    Text(describe(code,mods),fontWeight=FontWeight.SemiBold,fontSize=16.sp) }
-                TextButton(text=stringResource(R.string.clear),enabled=code!=0,onClick={ code=0; mods=0 })
-                TextButton(text=stringResource(R.string.board_apply),enabled=code!=0,onClick={ accept(BoardChord(code,mods)) })
+                    Text(describe(chord),fontWeight=FontWeight.SemiBold,fontSize=16.sp) }
+                TextButton(text=stringResource(R.string.clear),enabled=chord.code!=0,onClick={ packed=BoardChord().pack() })
+                TextButton(text=stringResource(R.string.board_apply),enabled=chord.code!=0,onClick={ accept(chord) })
             }
         }
     }
@@ -110,7 +114,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable private fun Keycap108(cap: BoardKey, chord: BoardChord, unit: Dp, rowHeight: Dp, zone: KeyZone, select: (Int)->Unit) {
     val colors=MiuixTheme.colorScheme
     val allowed=KeyMappings.keyAllowed(cap.code); val primary=cap.code==chord.code
-    val modifier=KeyMeta.group(cap.code) and chord.mods != 0
+    val modifier=chord.selected(cap.code) && !primary
     val shape=RoundedCornerShape(6.dp)
     val face=when { primary -> colors.primary; modifier -> colors.primaryContainer; !allowed -> colors.surfaceContainer; else -> colors.surface }
     val ink=when { primary -> colors.onPrimary; modifier -> colors.onPrimaryContainer; !allowed -> colors.onSurface.copy(alpha=.47f); else -> colors.onSurface }

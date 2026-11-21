@@ -28,11 +28,11 @@ internal object LocalActions {
         LocalAction(ActionKind.valueOf(data.getString("kind")), data.getString("value")).takeIf { it.valid() }
     }.getOrNull()
 
-    @Synchronized fun save(c: Context, owner: String, key: Int, mods: Int, dst: Int, dm: Int, action: String, local: LocalAction?): KeyMappings {
+    @Synchronized fun save(c: Context, owner: String, source: BoardChord, target: BoardChord, action: String, local: LocalAction?): KeyMappings {
         require(owner == KeyMappings.GLOBAL || ProfileStore.read(c).entries.containsKey(owner))
         val previous = MappingStore.read(c)
         val ref = if (local == null) action else "local_" + UUID.randomUUID().toString().replace("-", "")
-        val rule = KeyMappings.Rule(owner, key, mods, dst, dm, ref)
+        val rule = KeyMappings.Rule(owner,source.code,source.mods,target.code,target.mods,ref,source.held,target.held)
         val next = previous.put(rule)
         if (local != null) {
             require(local.valid())

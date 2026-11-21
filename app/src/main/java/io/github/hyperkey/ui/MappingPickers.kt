@@ -54,7 +54,7 @@ private val icons = LruCache<String, ImageBitmap>(64)
         BasicComponent(title=app.label,summary=(if(selected==app.pkg) "✓  " else "")+app.pkg,startAction={ LauncherIcon(app.pkg) },onClick={ onSelect(app.pkg) })
     } }
 }
-internal fun keyLabel(code: Int) = KeyEvent.keyCodeToString(code).removePrefix("KEYCODE_")
+internal fun keyLabel(code: Int) = if (code == KeyEvent.KEYCODE_FUNCTION) "Fn" else KeyEvent.keyCodeToString(code).removePrefix("KEYCODE_")
     .replace("META_LEFT","Win L").replace("META_RIGHT","Win R").replace('_',' ')
 
 /** Only public pages that our own app UID can launch. No extras, caller-supplied intents or grants. */

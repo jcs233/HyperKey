@@ -3,6 +3,10 @@ import io.github.hyperkey.R;
 public final class ResourceIds {
  private ResourceIds() {}
  public static int stringId(String name) { return switch(name) {
+ case "touchpad_group" -> R.string.touchpad_group;
+ case "touchpad_block_down" -> R.string.touchpad_block_down;
+ case "touchpad_down_hint" -> R.string.touchpad_down_hint;
+ case "touchpad_unavailable" -> R.string.touchpad_unavailable;
  case "native_wait" -> R.string.native_wait;
  case "hook_partial" -> R.string.hook_partial;
  case "not_set" -> R.string.not_set;

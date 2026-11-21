@@ -38,6 +38,7 @@ import top.yukonga.miuix.kmp.theme.lightColorScheme
 
 class MainActivity : ThemedActivity() {
     private var config by mutableStateOf(Config.DEFAULT)
+    private var blockTouchpad by mutableStateOf(false)
     private var writable by mutableStateOf(false)
     private var systemStatus by mutableStateOf("")
     private var settingsStatus by mutableStateOf("")
@@ -56,7 +57,7 @@ class MainActivity : ThemedActivity() {
     }
     override fun onStart() {
         super.onStart()
-        listOf(Config.SETTING, AppProfiles.SETTING, HookStatus.SYSTEM, HookStatus.SETTINGS).forEach {
+        listOf(Config.SETTING, io.github.hyperkey.core.TouchpadScreenshot.SETTING, AppProfiles.SETTING, HookStatus.SYSTEM, HookStatus.SETTINGS).forEach {
             contentResolver.registerContentObserver(Settings.Secure.getUriFor(it), false, observer)
         }
         reload()
@@ -67,6 +68,7 @@ class MainActivity : ThemedActivity() {
     private fun reload() {
         writable = ConfigStore.canWrite(this)
         config = runCatching { ConfigStore.read(this) }.getOrDefault(Config.DEFAULT)
+        blockTouchpad = runCatching { ConfigStore.blockTouchpadScreenshot(this) }.getOrDefault(false)
         profileCount = ProfileStore.read(this).entries.size
         systemStatus = HookStatus.describe(this, HookStatus.SYSTEM)
         settingsStatus = HookStatus.describe(this, HookStatus.SETTINGS)
@@ -106,6 +108,11 @@ class MainActivity : ThemedActivity() {
                             summary = if (config.blockAll) tr("master_restore") else tr("master_help"))
                     }
                     if (!writable) PermissionCard()
+                    Card(Modifier.fillMaxWidth()) {
+                        SuperSwitch(checked = blockTouchpad, enabled = writable, title = tr("touchpad_block_down"), summary = tr("touchpad_down_hint"),
+                            onCheckedChange = { block -> runCatching { ConfigStore.setBlockTouchpadScreenshot(this@MainActivity, block); reload() }
+                                .onFailure { Toast.makeText(this@MainActivity, tr("save_error", it.message ?: ""), Toast.LENGTH_LONG).show() } })
+                    }
                     Card(Modifier.fillMaxWidth()) {
                         BasicComponent(title = tr("profiles"), summary = tr("profiles_summary", profileCount),
                             onClick = { startActivity(Intent(this@MainActivity, ProfileActivity::class.java)) })
@@ -156,7 +163,7 @@ class MainActivity : ThemedActivity() {
                     }
                     Card(Modifier.fillMaxWidth()) {
                         BasicComponent(title = tr("restore"), summary = tr("restore_help"),
-                            enabled = writable, onClick = { update { Config.DEFAULT } })
+                            enabled = writable, onClick = { runCatching { ConfigStore.restore(this@MainActivity); reload() }.onFailure { Toast.makeText(this@MainActivity, tr("save_error", it.message ?: ""), Toast.LENGTH_LONG).show() } })
                     }
                 }
             }

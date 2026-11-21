@@ -17,5 +17,14 @@ public final class ConfigStore {
             throw new IllegalStateException("系统未保存快捷键配置");
         }
     }
-    public static void restore(Context context) { write(context, Config.DEFAULT); }
+    public static boolean blockTouchpadScreenshot(Context context) {
+        return Settings.Secure.getInt(context.getContentResolver(), TouchpadScreenshot.SETTING, 0) == 1;
+    }
+    public static void setBlockTouchpadScreenshot(Context context, boolean block) {
+        if (!Settings.Secure.putInt(context.getContentResolver(), TouchpadScreenshot.SETTING, block ? 1 : 0))
+            throw new IllegalStateException("系统未保存触控板配置");
+    }
+    public static void restore(Context context) {
+        write(context, Config.DEFAULT); setBlockTouchpadScreenshot(context, false);
+    }
 }

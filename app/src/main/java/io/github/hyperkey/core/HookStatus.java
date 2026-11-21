@@ -24,8 +24,11 @@ public final class HookStatus {
             boolean chinese = context.getResources().getConfiguration().getLocales().get(0).getLanguage().equals("zh");
             boolean pending = fields[3].endsWith(";native_wait");
             String detail = pending ? fields[3].substring(0, fields[3].length() - ";native_wait".length()) : fields[3];
+            boolean padMissing = detail.endsWith(";pad_unavailable");
+            if (padMissing) detail = detail.substring(0, detail.length() - ";pad_unavailable".length());
             String summary = detail.startsWith("partial:") ? UiText.text(context, "hook_partial", fields[2], detail.substring(8)) :
                     chinese ? detail + "（" + fields[2] + " 个 Hook）" : UiText.text(context, "status_loaded", fields[2]);
+            if (padMissing) summary += " · " + UiText.text(context, "touchpad_unavailable");
             return pending ? summary + " · " + UiText.text(context, "native_wait") : summary;
         } catch (RuntimeException ignored) { return UiText.text(context, "status_unreadable"); }
     }

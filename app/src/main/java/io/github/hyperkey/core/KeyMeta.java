@@ -4,7 +4,7 @@ package io.github.hyperkey.core;
 public final class KeyMeta {
     private KeyMeta() {}
     public static int group(int key) {
-        return switch (key) { case 57,58 -> 2; case 59,60 -> 1; case 113,114 -> 0x1000; case 117,118 -> 0x10000; default -> 0; };
+        return switch (key) { case 119 -> 8; case 57,58 -> 2; case 59,60 -> 1; case 113,114 -> 0x1000; case 117,118 -> 0x10000; default -> 0; };
     }
     public static int withSide(int key) {
         return group(key) | switch (key) { case 57 -> 0x10; case 58 -> 0x20; case 59 -> 0x40; case 60 -> 0x80;
